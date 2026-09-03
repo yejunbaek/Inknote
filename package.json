@@ -1,0 +1,66 @@
+{
+  "name": "inknote",
+  "version": "0.19.0",
+  "description": "A notetaking app with free-form typing, drawing, and a Milanote-style board",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "shortcut": "powershell -ExecutionPolicy Bypass -File build/make-shortcut.ps1",
+    "icon": "python build/make-icon.py",
+    "web": "node build/make-web.js",
+    "web:test": "node build/preview-web.js",
+    "preview": "node build/preview.js",
+    "dist": "electron-builder --win",
+    "pack": "electron-builder --win --dir"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^32.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.inknote.desktop",
+    "productName": "InkNote",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "build/icon.ico"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "InkNote",
+      "artifactName": "InkNote-Setup-${version}.exe",
+      "uninstallDisplayName": "InkNote ${version}"
+    },
+    "portable": {
+      "artifactName": "InkNote-${version}-portable.exe"
+    }
+  }
+}
