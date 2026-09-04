@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+  <title>InkNote</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- ============ SIDEBAR ============ -->
+    <aside id="sidebar">
+      <div class="sidebar-head">
+        <div class="brand">
+          <span class="brand-mark"></span>
+          <span class="brand-name">InkNote</span>
+        </div>
+        <div class="save-state" id="saveState">Saved</div>
+      </div>
+
+      <div class="sidebar-scroll">
+        <div class="pane">
+          <div class="pane-head">
+            <span>Sections</span>
+            <button class="icon-btn" id="addSection" title="New section">+</button>
+          </div>
+          <ul class="list" id="sectionList"></ul>
+        </div>
+
+        <div class="pane pane-pages">
+          <div class="pane-head">
+            <span>Pages</span>
+            <button class="icon-btn" id="addPage" title="New page">+</button>
+          </div>
+          <ul class="list" id="pageList"></ul>
+        </div>
+      </div>
+
+      <div class="sidebar-foot">
+        <button class="ghost-btn" id="exportBtn">Export</button>
+        <button class="ghost-btn" id="importBtn">Import</button>
+      </div>
+    </aside>
+
+    <!-- ============ MAIN ============ -->
+    <main id="main">
+      <header id="toolbar">
+        <div class="tool-group">
+          <button class="tool" data-tool="select" title="Select / move (V)">
+            <svg viewBox="0 0 24 24"><path d="M5 3l14 8-6 1.5L10 19z"/></svg>
+          </button>
+          <button class="tool" data-tool="text" title="Text box (T)">
+            <svg viewBox="0 0 24 24"><path d="M5 5h14v3M12 5v14M9 19h6"/></svg>
+          </button>
+          <button class="tool" data-tool="pen" title="Pen (P)">
+            <svg viewBox="0 0 24 24"><path d="M4 20l4-1 10-10-3-3L5 16z"/><path d="M14 6l3 3"/></svg>
+          </button>
+          <button class="tool" data-tool="highlighter" title="Highlighter (H)">
+            <svg viewBox="0 0 24 24"><path d="M6 18l3-9 7 3-4 8z"/><path d="M4 21h9"/></svg>
+          </button>
+          <button class="tool" data-tool="eraser" title="Eraser (E)">
+            <svg viewBox="0 0 24 24"><path d="M4 16l7-7 7 7-3 3H7z"/><path d="M6 21h13"/></svg>
+          </button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="tool-group" id="colorRow"></div>
+
+        <div class="divider"></div>
+
+        <div class="tool-group size-group">
+          <label for="sizeRange">Size</label>
+          <input type="range" id="sizeRange" min="1" max="40" value="3" />
+          <span class="size-preview"><i id="sizeDot"></i></span>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="tool-group">
+          <button class="tool wide" id="undoBtn" title="Undo (Ctrl+Z)">Undo</button>
+          <button class="tool wide" id="redoBtn" title="Redo (Ctrl+Shift+Z)">Redo</button>
+        </div>
+
+        <div class="spacer"></div>
+
+        <div class="tool-group">
+          <button class="tool wide" id="zoomOut" title="Zoom out">&minus;</button>
+          <button class="tool wide" id="zoomLevel" title="Reset zoom">100%</button>
+          <button class="tool wide" id="zoomIn" title="Zoom in">+</button>
+        </div>
+      </header>
+
+      <div id="stage">
+        <!-- canvas paints ink; overlay hosts text boxes; both share one transform -->
+        <canvas id="ink"></canvas>
+        <div id="overlay"></div>
+      </div>
+
+      <footer id="statusbar">
+        <span id="pageTitleLabel"></span>
+        <span class="spacer"></span>
+        <span id="hint">Space+drag or middle-drag to pan &middot; Ctrl+scroll to zoom</span>
+      </footer>
+    </main>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

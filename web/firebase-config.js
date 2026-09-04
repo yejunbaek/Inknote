@@ -12,8 +12,8 @@
  * PUBLISHING.md. Treat them like a URL, not a password.
  */
 window.INKNOTE_FIREBASE = {
-  apiKey: '',
-  authDomain: '',
-  projectId: '',
-  appId: ''
+  apiKey: 'AIzaSyAxm-9BWVLv0zaaALDX3oMFOvR7nCwY7lY',
+  authDomain: 'inknote-2193b.firebaseapp.com',
+  projectId: 'inknote-2193b',
+  appId: '1:160155806696:web:720334e73d834974f6d25d'
 };
