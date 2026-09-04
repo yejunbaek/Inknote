@@ -215,6 +215,9 @@ function markDirty() {
 async function persist() {
   if (!notebook) return;
   const res = await window.api.save(notebook);
+  if (window.INKNOTE_SYNC && window.INKNOTE_SYNC.configured) {
+    window.INKNOTE_SYNC.onLocalChange(notebook);
+  }
   dirty = false;
   saveState.textContent = res && res.ok ? 'Saved' : 'Save failed';
   saveState.classList.remove('dirty');
@@ -223,6 +226,46 @@ async function persist() {
 window.addEventListener('beforeunload', () => {
   if (dirty) { clearTimeout(saveTimer); window.api.save(notebook); }
 });
+
+// ---------------------------------------------------------------------------
+// Accepting a notebook from outside (a shared room)
+// ---------------------------------------------------------------------------
+// Replaces the model wholesale but keeps everything about *this* viewer's
+// session: which page they're on, what they had selected, where the camera
+// is. An update that yanked you to someone else's page would be unusable.
+let pendingRemote = null;
+
+function applyRemoteNotebook(next) {
+  if (!next || !Array.isArray(next.sections) || !next.sections.length) return;
+
+  // Never pull the rug while someone is mid-sentence; hold it until they stop.
+  if (editingItemId) { pendingRemote = next; return; }
+
+  const keepSection = notebook && notebook.activeSectionId;
+  const keepPage = notebook && notebook.activePageId;
+  const keepSelection = [...selection];
+
+  notebook = migrate(next) || next;
+  notebook.activeSectionId = keepSection;
+  notebook.activePageId = keepPage;
+  if (!activeSection()) notebook.activeSectionId = notebook.sections[0].id;
+  if (!activePage()) notebook.activePageId = activeSection().pages[0].id;
+
+  renderSidebar();
+  renderPageContent();
+
+  selection.clear();
+  keepSelection.forEach(id => { if (itemById(id)) selection.add(id); });
+  selectedItemId = selection.has(selectedItemId) ? selectedItemId : null;
+  paintSelection();
+}
+
+function applyPendingRemote() {
+  if (!pendingRemote) return;
+  const next = pendingRemote;
+  pendingRemote = null;
+  applyRemoteNotebook(next);
+}
 
 // ---------------------------------------------------------------------------
 // Confirmation modal — promise-based, replaces window.confirm
@@ -977,10 +1020,13 @@ function endEdit(item) {
   // fine, its element just isn't on the page any more.
   const detached = !el || !el.isConnected;
   if (item.type === 'card' && !item.text && !detached) removeItem(item, { silent: true });
+
+  // A room update that arrived while you were typing lands now.
+  if (!editingItemId) applyPendingRemote();
 }
 
 function stopEditing() {
-  if (!editingItemId) return false;
+  if (!editingItemId) { applyPendingRemote(); return false; }
   const item = itemById(editingItemId);
   const el = elMap.get(editingItemId);
   if (el) {
@@ -3727,6 +3773,39 @@ $('#zoomLevel').addEventListener('click', () => setZoom(1));
 $('#homeBtn').addEventListener('click', () => goHome());
 
 $('#exportBtn').addEventListener('click', () => window.api.exportNotebook(notebook));
+
+// ---- shared rooms (web build only; absent on desktop) ---------------------
+const shareBtn = $('#shareBtn');
+if (shareBtn && window.INKNOTE_SYNC && window.INKNOTE_SYNC.configured) {
+  shareBtn.hidden = false;
+  shareBtn.addEventListener('click', async () => {
+    const already = window.INKNOTE_SYNC.inRoom();
+    shareBtn.disabled = true;
+    try {
+      const link = await window.INKNOTE_SYNC.share(notebook);
+      let copied = false;
+      try { await navigator.clipboard.writeText(link); copied = true; } catch { /* denied */ }
+      await openModal({
+        title: already ? 'Share this room' : 'Room created',
+        body: (copied ? 'Link copied to your clipboard.\n\n' : '') + link +
+              '\n\nAnyone with this link can open and edit this notebook. ' +
+              'Edits appear for everyone within a second.',
+        okLabel: 'Done',
+        danger: false
+      });
+    } catch (err) {
+      console.error(err);
+      await openModal({
+        title: 'Could not create the room',
+        body: String(err && err.message ? err.message : err),
+        okLabel: 'OK', danger: false
+      });
+    } finally {
+      shareBtn.disabled = false;
+      shareBtn.textContent = window.INKNOTE_SYNC.inRoom() ? 'Copy link' : 'Share';
+    }
+  });
+}
 $('#importBtn').addEventListener('click', async () => {
   const res = await window.api.importNotebook();
   if (!res || !res.ok) return;
@@ -3835,6 +3914,13 @@ window.addEventListener('keyup', (e) => {
   resizeCanvas();
   renderPageContent();
   saveState.textContent = 'Saved';
+
+  // If the URL names a shared room, join it — its contents replace what we
+  // just loaded from local storage.
+  if (window.INKNOTE_SYNC && window.INKNOTE_SYNC.configured) {
+    const joined = await window.INKNOTE_SYNC.start();
+    if (joined && shareBtn) shareBtn.textContent = 'Copy link';
+  }
 })();
 
 // ---------------------------------------------------------------------------
@@ -3854,7 +3940,7 @@ window.__inknote = {
   createVariable, renameVariable, deleteVariable, fieldsUsingVariable,
   openVariablePicker, closeVariablePicker, chooseVariable, commitVariableSearch,
   promptText, promptRenameVariable,
-  goHome, contentBounds, cam, startPan,
+  goHome, contentBounds, cam, startPan, applyRemoteNotebook,
   get panning() { return panning; },
   copyItem, copyItems, copySelection, pasteClipboard,
   toggleSelect, clearSelection, selectedItems, selectionRoots,

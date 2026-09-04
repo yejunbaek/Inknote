@@ -897,3 +897,17 @@ html, body {
 
 /* A block row points at one box rather than a whole page. */
 #pagePickerList li.picker-block .picker-title { font-weight: 600; }
+
+/* ===== Shared room chip ================================================== */
+.room-chip {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: #eeeae3; color: var(--muted);
+  white-space: nowrap;
+}
+.room-chip[hidden] { display: none; }
+.room-chip.live { background: #e6f4ec; color: #1f6b44; }
+.room-chip.bad { background: #fbecea; color: var(--danger); }
+
+.sidebar-foot { flex-wrap: wrap; }

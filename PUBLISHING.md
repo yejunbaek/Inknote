@@ -67,6 +67,69 @@ git push
 
 Pages redeploys on its own, usually within a minute.
 
+## Shared rooms (optional)
+
+Out of the box every visitor gets a private notebook in their own browser.
+Turning on shared rooms adds a **Share** button that turns the current
+notebook into a link — anyone who opens it sees the same notebook and edits
+appear for everyone within a second.
+
+GitHub Pages only serves files, so this needs a database. Firebase's free
+tier is enough and there is no server to run.
+
+### Setting it up
+
+1. Go to [console.firebase.google.com](https://console.firebase.google.com)
+   and create a project. Google Analytics is not needed.
+2. **Build → Firestore Database → Create database.** Start in *production
+   mode*; the rules below replace the defaults.
+3. **Build → Authentication → Get started → Anonymous → Enable.** Visitors
+   never see a sign-in; this just gives each browser an identity the rules can
+   check.
+4. **Project settings → General → Your apps → Web (`</>`)**. Register the app
+   and copy the `firebaseConfig` values into `web/firebase-config.js`.
+5. In **Firestore → Rules**, paste this and publish:
+
+   ```
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /rooms/{room}/{document=**} {
+         allow read, write: if request.auth != null;
+       }
+     }
+   }
+   ```
+
+6. Rebuild and push:
+
+   ```bash
+   npm run web
+   git add docs web/firebase-config.js
+   git commit -m "Enable shared rooms"
+   git push
+   ```
+
+The config values are safe to commit. They identify the project, they don't
+grant access — that's what the rules above are for. Firebase's own docs say
+the same.
+
+### What to know before you share a link
+
+- **The link is the password.** Anyone holding it can read and edit that room,
+  and anyone they forward it to can too. Room ids are ten random characters,
+  so they can't realistically be guessed, but there is no other protection.
+- **No history and no undo for other people's edits.** Your `Ctrl+Z` only
+  walks back your own changes.
+- **Two people editing the same page at once**: whoever saves last wins that
+  page. Different pages never collide — each page is its own document. Finer
+  merging is the obvious next step if this becomes a problem.
+- **Free tier limits** are 50,000 reads and 20,000 writes a day, which is a
+  lot for a handful of people but not unlimited.
+
+Leaving `web/firebase-config.js` empty disables all of this cleanly: no Share
+button, no network calls, everything stays local.
+
 ## What visitors get
 
 - No account, no sign-up, no server. Everything is stored in the visitor's own

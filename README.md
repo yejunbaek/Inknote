@@ -37,6 +37,11 @@ npx serve docs     # try it locally
 `docs/` is what GitHub Pages serves — see **PUBLISHING.md** for the handful of
 commands that put it online.
 
+**Shared rooms** are optional: fill in `web/firebase-config.js` and a
+**Share** button turns the current notebook into a link. Anyone who opens it
+edits the same notebook, live. Left empty, none of that exists and every
+visitor just has their own private notebook. PUBLISHING.md has the setup.
+
 It is the same app. `src/` is the single source for both builds; the only
 difference is where things are stored: the desktop version uses files on your
 disk, the web version uses the visitor's own browser (IndexedDB), and nothing
@@ -74,8 +79,8 @@ That produces two files in `dist\`:
 
 | File | What it is |
 | --- | --- |
-| `InkNote-Setup-0.19.0.exe` | Installer. Run it once; it adds a desktop shortcut and Start Menu entry, and shows up in Add/Remove Programs. |
-| `InkNote-0.19.0-portable.exe` | Single self-contained file. Double-click to run — no install, keep it on a USB stick if you like. |
+| `InkNote-Setup-0.20.0.exe` | Installer. Run it once; it adds a desktop shortcut and Start Menu entry, and shows up in Add/Remove Programs. |
+| `InkNote-0.20.0-portable.exe` | Single self-contained file. Double-click to run — no install, keep it on a USB stick if you like. |
 
 The build downloads a few helper binaries from GitHub the first time, so give
 it a couple of minutes. Windows SmartScreen will warn that the app is from an

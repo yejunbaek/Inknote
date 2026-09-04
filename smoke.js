@@ -1746,7 +1746,8 @@ const elFor = (id) => doc.querySelector(`#items [data-id="${id}"]`);
     'no legacy texts arrays written back');
 
   console.log(failed ? `\nSMOKE TEST FAILED (${failed})` : '\nSMOKE TEST PASSED');
-  if (failed) process.exitCode = 1;
+  // jsdom leaves timers running, which would hold the process open.
+  process.exit(failed ? 1 : 0);
 })().catch(err => {
   console.error('\nTEST HARNESS ERROR:', err);
   process.exitCode = 1;

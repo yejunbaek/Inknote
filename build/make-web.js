@@ -27,10 +27,29 @@ function buildHtml() {
     "img-src 'self' data: blob: inknote-img:"
   );
 
-  // The adapter has to define window.api before renderer.js runs.
+  // Shared rooms load the Firebase SDK from Google's CDN and talk to
+  // Firestore. Both have to be named explicitly or the CSP blocks them.
+  html = html.replace(
+    "script-src 'self'",
+    "script-src 'self' https://www.gstatic.com"
+  ).replace(
+    "default-src 'self';",
+    "default-src 'self'; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com;"
+  );
+
+  // Order matters: the adapter and the sync layer both have to exist before
+  // renderer.js runs.
   html = html.replace(
     '<script src="renderer.js"></script>',
-    '<script src="starter.js"></script>\n  <script src="api-web.js"></script>\n  <script src="renderer.js"></script>'
+    [
+      '<script src="firebase-config.js"></script>',
+      // A classic script, not a module: modules are deferred and would run
+      // after renderer.js, which checks for the sync layer as it boots.
+      '  <script src="sync.js"></script>',
+      '  <script src="starter.js"></script>',
+      '  <script src="api-web.js"></script>',
+      '  <script src="renderer.js"></script>'
+    ].join('\n  ')
   );
 
   if (!html.includes('api-web.js')) {
@@ -56,7 +75,7 @@ function main() {
   for (const f of ['styles.css', 'renderer.js']) {
     fs.copyFileSync(path.join(SRC, f), path.join(OUT, f));
   }
-  for (const f of ['api-web.js', 'starter.js']) {
+  for (const f of ['api-web.js', 'starter.js', 'sync.js', 'firebase-config.js']) {
     fs.copyFileSync(path.join(WEB, f), path.join(OUT, f));
   }
 

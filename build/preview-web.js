@@ -118,6 +118,90 @@ const check = (cond, msg) => {
   const stillThere = await page.evaluate((src) => window.api.imageUrl(src).startsWith('blob:'), afterReload);
   check(stillThere, 'and is still resolvable after a reload');
 
+  console.log('\nshared rooms'); phase = 'shared rooms';
+  check(await page.locator('#shareBtn').count() === 1, 'the Share button exists in the markup');
+  check(await page.locator('#shareBtn').isHidden(),
+    'but stays hidden until Firebase is configured');
+  const syncState = await page.evaluate(() => ({
+    present: !!window.INKNOTE_SYNC,
+    configured: window.INKNOTE_SYNC && window.INKNOTE_SYNC.configured
+  }));
+  check(syncState.present, 'the sync layer loads');
+  check(syncState.configured === false, 'and reports itself unconfigured, so the app stays local');
+
+  // The pure parts of the sync layer are testable without a backend.
+  const pure = await page.evaluate(() => {
+    const I = window.INKNOTE_SYNC.internals;
+    const nb = {
+      version: 2, variables: [{ id: 'v', name: 'HP' }], recentLinks: [],
+      sections: [{ id: 's', name: 'S', color: '#000', pages: [
+        { id: 'p1', title: 'One', items: [{ id: 'i1', type: 'card', x: 1, y: 2, w: 3, text: 'a' }], strokes: [], links: [] },
+        { id: 'p2', title: 'Two', items: [], strokes: [], links: [] }
+      ] }]
+    };
+    const docs = I.toDocs(nb);
+    const back = I.fromDocs(docs.structure, docs.pages);
+
+    // one page edited -> only that page is in the diff
+    const edited = JSON.parse(JSON.stringify(nb));
+    edited.sections[0].pages[0].items[0].text = 'changed';
+    const last = {
+      structure: JSON.stringify(docs.structure),
+      pages: new Map(Object.entries(docs.pages).map(([k, v]) => [k, JSON.stringify(v)]))
+    };
+    const diff = I.diffDocs(I.toDocs(edited), last);
+
+    // a page removed -> it shows up as a deletion
+    const fewer = JSON.parse(JSON.stringify(nb));
+    fewer.sections[0].pages.pop();
+    const diff2 = I.diffDocs(I.toDocs(fewer), last);
+
+    return {
+      pageCount: Object.keys(docs.pages).length,
+      roundTripped: JSON.stringify(back.sections) === JSON.stringify(nb.sections),
+      keptVariables: back.variables.length === 1,
+      changed: diff.changedPages.map(c => c[0]),
+      structureUnchanged: diff.structure === null,
+      removed: diff2.removedPages,
+      structureChanged: diff2.structure !== null,
+      roomIds: [I.newRoomId(), I.newRoomId()],
+      fromUrl: I.roomFromUrl('https://x.io/inknote/#room=abc123def0'),
+      noRoom: I.roomFromUrl('https://x.io/inknote/'),
+      link: I.roomLink('abc123def0', 'https://x.io/inknote/#room=old')
+    };
+  });
+
+  check(pure.pageCount === 2, 'a notebook splits into one document per page');
+  check(pure.roundTripped, 'and rebuilds back into the same notebook');
+  check(pure.keptVariables, 'with the shared variable list intact');
+  check(pure.changed.length === 1 && pure.changed[0] === 'p1',
+    'editing one page queues only that page for writing');
+  check(pure.structureUnchanged, 'and leaves the structure document alone');
+  check(pure.removed.length === 1 && pure.removed[0] === 'p2', 'a deleted page is queued for deletion');
+  check(pure.structureChanged, 'which does change the structure document');
+  check(pure.roomIds[0] !== pure.roomIds[1] && pure.roomIds[0].length === 10,
+    'room ids are ten characters and not repeated');
+  check(pure.fromUrl === 'abc123def0', 'a room id is read back out of a URL');
+  check(pure.noRoom === null, 'a plain URL has no room');
+  check(pure.link === 'https://x.io/inknote/#room=abc123def0', 'and a link is built cleanly');
+
+  // A remote notebook lands without disturbing which page you are on.
+  const remote = await page.evaluate(() => {
+    const T = window.__inknote;
+    const before = T.notebook.activePageId;
+    const nb = JSON.parse(JSON.stringify(T.notebook));
+    nb.sections[0].pages[1].items.push({ id: 'from-elsewhere', type: 'card',
+      x: 10, y: 10, w: 200, text: 'someone else made this', color: null });
+    T.applyRemoteNotebook(nb);
+    return {
+      stayedOnPage: T.notebook.activePageId === before,
+      gotTheEdit: !!T.findPage(nb.sections[0].pages[1].id).page.items
+        .find(i => i.id === 'from-elsewhere')
+    };
+  });
+  check(remote.stayedOnPage, 'a remote update leaves you on the page you were reading');
+  check(remote.gotTheEdit, 'while still bringing in the change');
+
   console.log('\nno storage (private window / blocked cookies)'); phase = 'no storage';
   const blocked = await browser.newContext({ viewport: { width: 900, height: 600 } });
   const bp = await blocked.newPage();
@@ -140,4 +224,7 @@ const check = (cond, msg) => {
 
   await browser.close();
   server.close();
+  // Keep-alive sockets can hold the event loop open after everything useful
+  // has finished, so say so explicitly.
+  process.exit(failed ? 1 : 0);
 })();

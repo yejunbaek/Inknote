@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data: blob: inknote-img:" />
+        content="default-src 'self'; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com; style-src 'self' 'unsafe-inline'; script-src 'self' https://www.gstatic.com; img-src 'self' data: blob: inknote-img:" />
   <title>InkNote — notes, drawing and boards</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="A free notebook that mixes typing, drawing and Milanote-style boards. Runs entirely in your browser — no account needed." />
@@ -21,6 +21,7 @@
           <span class="brand-name">InkNote</span>
         </div>
         <div class="save-state" id="saveState">Saved</div>
+        <div class="room-chip" id="roomChip" hidden></div>
       </div>
 
       <div class="sidebar-scroll">
@@ -44,6 +45,7 @@
       <div class="sidebar-foot">
         <button class="ghost-btn" id="exportBtn">Export</button>
         <button class="ghost-btn" id="importBtn">Import</button>
+        <button class="ghost-btn" id="shareBtn" hidden>Share</button>
       </div>
     </aside>
 
@@ -186,8 +188,10 @@
     </div>
   </div>
 
-  <script src="starter.js"></script>
-  <script src="api-web.js"></script>
-  <script src="renderer.js"></script>
+  <script src="firebase-config.js"></script>
+    <script src="sync.js"></script>
+    <script src="starter.js"></script>
+    <script src="api-web.js"></script>
+    <script src="renderer.js"></script>
 </body>
 </html>
